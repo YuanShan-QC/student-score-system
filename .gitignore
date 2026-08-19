@@ -1,0 +1,19 @@
+# 敏感配置
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# SQLite
+*.db
+
+# Node
+node_modules/
+dist/
+
+# IDE
+.vscode/
+.idea/
