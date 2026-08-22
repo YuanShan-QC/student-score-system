@@ -213,7 +213,7 @@ onActivated(() => {
 
 <template>
   <div>
-    <h2>📊 成绩录入</h2>
+    <h2 class="page-title">成绩管理</h2>
 
     <!-- 录入成绩卡片 -->
     <el-card style="margin-top:16px">

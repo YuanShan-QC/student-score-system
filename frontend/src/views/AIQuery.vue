@@ -5,6 +5,7 @@
  */
 defineOptions({ name: 'AIQuery' })
 import { ref, nextTick } from 'vue'
+import { MagicStick, CaretRight, CaretBottom } from '@element-plus/icons-vue'
 import { useDataStore } from '../stores/dataStore'
 
 const dataStore = useDataStore()
@@ -128,8 +129,11 @@ function toolLabel(name) { return toolNameMap[name] || name }
   <div class="ai-chat">
     <div class="chat-messages" ref="chatArea">
       <div v-if="messages.length === 0" class="empty-state">
-        <div class="empty-icon">🤖</div>
+        <div class="empty-icon">
+          <el-icon :size="48"><MagicStick /></el-icon>
+        </div>
         <div class="empty-title">你好！我是成绩管理智能体</div>
+        <div class="empty-sub">可以问我「数学不及格的学生有哪些」「各科目平均分排名」等</div>
       </div>
 
       <div v-for="(msg, i) in messages" :key="i" :class="['message-row', msg.role]">
@@ -174,25 +178,25 @@ function toolLabel(name) { return toolNameMap[name] || name }
 
           <!-- 思考过程（折叠） —— 只在完成后才显示 -->
           <div v-if="msg.status !== 'thinking' && msg.steps?.length" class="thinking-toggle" @click="msg.showThinking = !msg.showThinking">
-            <span class="toggle-icon">{{ msg.showThinking ? '▼' : '▶' }}</span>
+            <el-icon :size="12"><CaretBottom v-if="msg.showThinking" /><CaretRight v-else /></el-icon>
             <span class="toggle-label">思考过程 ({{ msg.steps.length }} 步)</span>
           </div>
 
           <div v-if="msg.showThinking && msg.status !== 'thinking'" class="thought-chain">
             <div v-for="(step, si) in msg.steps" :key="si" :class="['step-item', step.type]">
               <div v-if="step.type === 'thinking'" class="step-thinking">
-                💭 {{ step.content }}
+                思考 {{ step.content }}
               </div>
               <div v-else-if="step.type === 'executing'" class="step-executing">
-                ⚡ {{ step.content }}
+                执行 {{ step.content }}
               </div>
               <div v-else-if="step.type === 'step'" class="step-tool">
-                <div class="step-thought">💭 {{ step.thought }}</div>
-                <div class="step-action">🔧 {{ toolLabel(step.tool) }}</div>
-                <div class="step-obs">📋 {{ step.observation }}</div>
+                <div class="step-thought">思考 {{ step.thought }}</div>
+                <div class="step-action">工具 {{ toolLabel(step.tool) }}</div>
+                <div class="step-obs">结果 {{ step.observation }}</div>
               </div>
               <div v-else-if="step.type === 'cancel'" class="step-cancel">
-                ❌ {{ step.content }}
+                已取消 {{ step.content }}
               </div>
             </div>
           </div>
@@ -214,40 +218,40 @@ function toolLabel(name) { return toolNameMap[name] || name }
 </template>
 
 <style scoped>
-.ai-chat { display: flex; flex-direction: column; height: calc(100vh - 120px); }
+.ai-chat { display: flex; flex-direction: column; height: calc(100vh - 160px); }
 .chat-messages { flex: 1; overflow-y: auto; padding: 16px 0; }
 .message-row { margin-bottom: 18px; }
 .message-row.user { display: flex; justify-content: flex-end; }
 .message-bubble { display: inline-block; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.6; word-break: break-word; }
-.user-bubble { background: #409eff; color: #fff; max-width: 70%; }
-.ai-bubble { background: #f0f2f5; color: #303133; max-width: 85%; margin-bottom: 4px; }
+.user-bubble { background: var(--el-color-primary); color: #fff; max-width: 70%; }
+.ai-bubble { background: var(--app-page-bg); color: var(--app-text-main); max-width: 85%; margin-bottom: 4px; }
+html.dark .ai-bubble { background: #111827; }
 
 /* 表格 */
 .data-table { margin: 8px 0 12px 0; max-width: 100%; }
-.table-header { font-size: 12px; color: #909399; margin-bottom: 4px; }
+.table-header { font-size: 12px; color: var(--app-text-sub); margin-bottom: 4px; }
 
 /* 思考过程切换 */
 .thinking-toggle {
-  cursor: pointer; padding: 4px 0; font-size: 12px; color: #909399;
+  cursor: pointer; padding: 4px 0; font-size: 12px; color: var(--app-text-sub);
   user-select: none; display: flex; align-items: center; gap: 4px;
   opacity: 0.7; transition: opacity 0.2s;
 }
 .thinking-toggle:hover { opacity: 1; }
-.toggle-icon { font-size: 10px; width: 12px; }
 .toggle-label { font-size: 12px; }
 
 /* 思考链 */
-.thought-chain { margin-top: 4px; padding-left: 8px; border-left: 2px solid #e4e7ed; }
+.thought-chain { margin-top: 4px; padding-left: 8px; border-left: 2px solid var(--app-header-border); }
 .step-item { padding: 4px 0; font-size: 12px; }
-.step-thought { color: #606266; }
-.step-action { color: #409eff; }
+.step-thought { color: var(--app-text-main); }
+.step-action { color: var(--el-color-primary); }
 .step-obs { color: #67c23a; }
-.step-thinking { color: #909399; }
+.step-thinking { color: var(--app-text-sub); }
 .step-executing { color: #e6a23c; }
-.step-cancel { color: #909399; }
+.step-cancel { color: var(--app-text-sub); }
 
 .thinking-dots { padding: 8px 0; }
-.thinking-dots span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #909399; margin: 0 3px; animation: blink 1.4s infinite; }
+.thinking-dots span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--app-text-sub); margin: 0 3px; animation: blink 1.4s infinite; }
 .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
 .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes blink { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
@@ -257,9 +261,9 @@ function toolLabel(name) { return toolNameMap[name] || name }
 .ai-message { max-width: 95%; }
 
 .empty-state { text-align: center; padding: 60px 20px; }
-.empty-icon { font-size: 48px; margin-bottom: 12px; }
-.empty-title { font-size: 16px; color: #303133; margin-bottom: 8px; }
-.empty-sub { font-size: 13px; color: #909399; }
-.quick-examples { display: flex; gap: 8px; padding: 8px 0; flex-wrap: wrap; border-top: 1px solid #ebeef5; }
-.chat-input { display: flex; gap: 8px; padding: 8px 0; border-top: 1px solid #ebeef5; }
+.empty-icon { display: flex; justify-content: center; margin-bottom: 12px; color: var(--el-color-primary); }
+.empty-title { font-size: 16px; color: var(--app-text-main); margin-bottom: 8px; }
+.empty-sub { font-size: 13px; color: var(--app-text-sub); }
+.quick-examples { display: flex; gap: 8px; padding: 8px 0; flex-wrap: wrap; border-top: 1px solid var(--app-header-border); }
+.chat-input { display: flex; gap: 8px; padding: 8px 0; border-top: 1px solid var(--app-header-border); }
 </style>

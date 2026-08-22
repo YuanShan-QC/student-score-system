@@ -152,55 +152,57 @@ onActivated(fetchData)
 
 <template>
   <div>
-    <h1>👨‍🎓 学生管理</h1>
+    <h2 class="page-title">学生管理</h2>
 
-    <!-- 搜索栏 -->
-    <div style="display:flex; justify-content:space-between; align-items:center; margin: 16px 0">
-      <div style="display:flex; gap:8px">
-        <el-input
-          v-model="keyword"
-          placeholder="搜索姓名或学号"
-          :prefix-icon="Search"
-          style="width: 260px"
-          clearable
-          @keyup.enter="onSearch"
-        />
-        <el-button type="primary" @click="onSearch">搜索</el-button>
+    <div class="page-card">
+      <!-- 搜索栏 -->
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <el-input
+            v-model="keyword"
+            placeholder="搜索姓名或学号"
+            :prefix-icon="Search"
+            style="width: 260px"
+            clearable
+            @keyup.enter="onSearch"
+          />
+          <el-button type="primary" @click="onSearch">搜索</el-button>
+        </div>
+        <el-button type="primary" @click="openAdd">新增学生</el-button>
       </div>
-      <el-button type="primary" @click="openAdd">+ 新增学生</el-button>
-    </div>
 
-    <!-- 表格 -->
-    <el-table :data="list" v-loading="loading" style="width:100%" stripe>
-      <el-table-column prop="student_id" label="学号" min-width="120" />
-      <el-table-column prop="name" label="姓名" min-width="100" />
-      <el-table-column prop="gender" label="性别" min-width="80">
-        <template #default="{ row }">
-          <el-tag :type="row.gender === '男' ? '' : 'danger'" size="small">
-            {{ row.gender }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="age" label="年龄" min-width="80" />
-      <el-table-column label="操作" min-width="140">
-        <template #default="{ row }">
-          <el-button type="primary" link size="small" @click="openEdit(row)">编辑</el-button>
-          <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+      <!-- 表格 -->
+      <el-table :data="list" v-loading="loading" style="width:100%" stripe>
+        <el-table-column prop="student_id" label="学号" min-width="120" />
+        <el-table-column prop="name" label="姓名" min-width="100" />
+        <el-table-column prop="gender" label="性别" min-width="80">
+          <template #default="{ row }">
+            <el-tag :type="row.gender === '男' ? '' : 'danger'" size="small" effect="light">
+              {{ row.gender }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="age" label="年龄" min-width="80" />
+        <el-table-column label="操作" min-width="140" fixed="right">
+          <template #default="{ row }">
+            <el-button type="primary" link size="small" @click="openEdit(row)">编辑</el-button>
+            <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
-    <!-- 分页 -->
-    <div style="display:flex; justify-content:flex-end; margin-top:16px">
-      <el-pagination
-        v-model:current-page="pagination.page"
-        :page-size="pagination.page_size"
-        :page-sizes="[10]"
-        :total="pagination.total"
-        background
-        layout="total, prev, pager, next"
-        @current-change="onPageChange"
-      />
+      <!-- 分页 -->
+      <div class="pagination-wrap">
+        <el-pagination
+          v-model:current-page="pagination.page"
+          :page-size="pagination.page_size"
+          :page-sizes="[10]"
+          :total="pagination.total"
+          background
+          layout="total, prev, pager, next"
+          @current-change="onPageChange"
+        />
+      </div>
     </div>
 
     <!-- 弹窗 -->
@@ -234,3 +236,21 @@ onActivated(fetchData)
     </el-dialog>
   </div>
 </template>
+
+<style scoped>
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.toolbar-left {
+  display: flex;
+  gap: 8px;
+}
+.pagination-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+</style>

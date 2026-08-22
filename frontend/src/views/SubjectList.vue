@@ -102,25 +102,27 @@ onActivated(fetchData)
 
 <template>
   <div>
-    <h1>📚 科目管理</h1>
+    <h2 class="page-title">科目管理</h2>
 
-    <!-- 工具栏 -->
-    <div style="margin: 16px 0">
-      <el-button type="primary" @click="openAdd">+ 新增科目</el-button>
+    <div class="page-card">
+      <!-- 工具栏 -->
+      <div class="toolbar">
+        <el-button type="primary" @click="openAdd">新增科目</el-button>
+      </div>
+
+      <!-- 表格 -->
+      <el-table :data="list" v-loading="loading" style="width:100%" stripe>
+        <el-table-column prop="id" label="ID" min-width="80" />
+        <el-table-column prop="code" label="科目编号" min-width="120" />
+        <el-table-column prop="name" label="科目名称" min-width="150" />
+        <el-table-column label="操作" min-width="140" fixed="right">
+          <template #default="{ row }">
+            <el-button type="primary" link size="small" @click="openEdit(row)">编辑</el-button>
+            <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
     </div>
-
-    <!-- 表格 -->
-    <el-table :data="list" v-loading="loading" style="width:100%" stripe>
-      <el-table-column prop="id" label="ID" min-width="80" />
-      <el-table-column prop="code" label="科目编号" min-width="120" />
-      <el-table-column prop="name" label="科目名称" min-width="150" />
-      <el-table-column label="操作" min-width="140">
-        <template #default="{ row }">
-          <el-button type="primary" link size="small" @click="openEdit(row)">编辑</el-button>
-          <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
 
     <!-- 弹窗 -->
     <el-dialog
@@ -144,3 +146,9 @@ onActivated(fetchData)
     </el-dialog>
   </div>
 </template>
+
+<style scoped>
+.toolbar {
+  margin-bottom: 16px;
+}
+</style>

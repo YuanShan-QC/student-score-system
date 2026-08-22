@@ -1,0 +1,126 @@
+/**
+ * 全局样式 —— 主题色变量 + 布局变量 + 通用工具类
+ * 主题：现代靛紫（#6366f1），支持亮色 / 暗色双模式
+ */
+
+/* ================================================================
+ * 一、Element Plus 主题色覆盖（靛紫 #6366f1）
+ * ================================================================ */
+:root {
+  --el-color-primary: #6366f1;
+  --el-color-primary-light-3: #9294f5;
+  --el-color-primary-light-5: #b1b3f8;
+  --el-color-primary-light-7: #d0d1fb;
+  --el-color-primary-light-8: #e0e0fc;
+  --el-color-primary-light-9: #eff0fe;
+  --el-color-primary-dark-2: #4f52c1;
+
+  --el-border-radius-base: 8px;
+  --el-border-radius-small: 6px;
+
+  /* ================================================================
+   * 二、自定义布局变量（亮色模式默认值）
+   * ================================================================ */
+  --app-sidebar-bg: #1f2937;          /* 侧边栏背景：深灰蓝 */
+  --app-sidebar-text: #cbd5e1;        /* 侧边栏菜单文字 */
+  --app-sidebar-active-bg: rgba(99, 102, 241, 0.18);
+  --app-sidebar-logo-bg: #111827;
+
+  --app-page-bg: #f5f6f8;             /* 主内容区背景 */
+  --app-card-bg: #ffffff;             /* 卡片背景 */
+  --app-card-shadow: 0 1px 3px rgba(17, 24, 39, 0.06), 0 1px 2px rgba(17, 24, 39, 0.04);
+  --app-card-shadow-hover: 0 4px 12px rgba(17, 24, 39, 0.1);
+
+  --app-text-main: #303133;
+  --app-text-sub: #909399;
+  --app-header-bg: #ffffff;
+  --app-header-border: #e5e7eb;
+}
+
+/* ================================================================
+ * 三、暗色模式（html 加 dark class 时生效）
+ * ================================================================ */
+html.dark {
+  --app-sidebar-bg: #111827;
+  --app-sidebar-text: #9ca3af;
+  --app-sidebar-active-bg: rgba(99, 102, 241, 0.22);
+  --app-sidebar-logo-bg: #0b1120;
+
+  --app-page-bg: #0f172a;
+  --app-card-bg: #1f2937;
+  --app-card-shadow: none;
+
+  --app-text-main: #e5e7eb;
+  --app-text-sub: #9ca3af;
+  --app-header-bg: #1f2937;
+  --app-header-border: #374151;
+}
+
+/* ================================================================
+ * 四、全局基础样式
+ * ================================================================ */
+html, body, #app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 自定义滚动条，更精致 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #c1c4cb;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a8abb2;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ================================================================
+ * 五、通用工具类
+ * ================================================================ */
+/* 页面标题 */
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--app-text-main);
+  margin: 0 0 16px;
+}
+
+/* 卡片容器（内容区白底圆角阴影） */
+.page-card {
+  background: var(--app-card-bg);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--app-card-shadow);
+}
+
+/* 表格表头美化（配合 el-table 使用） */
+.el-table th.el-table__cell {
+  background-color: #fafafa !important;
+  color: #606266;
+  font-weight: 600;
+}
+html.dark .el-table th.el-table__cell {
+  background-color: #111827 !important;
+  color: #d1d5db;
+}
+
+/* el-card 全局阴影统一 */
+.el-card {
+  border: none !important;
+  border-radius: 12px !important;
+  box-shadow: var(--app-card-shadow) !important;
+}

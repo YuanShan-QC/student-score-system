@@ -77,11 +77,12 @@ def root():
 
 
 # ===== 路由注册 =====
-from routers import subjects, students, scores, ai
+from routers import subjects, students, scores, ai, stats
 app.include_router(subjects.router)
 app.include_router(students.router)
 app.include_router(scores.router)
 app.include_router(ai.router)
+app.include_router(stats.router)
 
 
 # ===== 启动入口 =====
