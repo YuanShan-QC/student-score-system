@@ -7,52 +7,46 @@ FastAPI 应用入口 —— 学生成绩管理系统 API
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# ===== 数据库初始化（首次启动时建表+种子数据）=====
+# ===== 数据库初始化 =====
+# 【2026-09-27 修复】这里原本内联了一整套种子数据（6 科 5 生 25 条成绩），
+# 和 init_data.py 里的那份**重复且不一致**：
+#   · init_data.py 只给 5 个学生各录 5 科（CHN/MATH/ENG/PHY/CHEM），BIO 没有成绩
+#   · main.py 这份则会给部分学生多插 BIO 成绩
+# 结果：同一套代码，走"python main.py"和走"python init_data.py"初始化出来的库不一样，
+# 开发库里真的因此多出过 3 条成绩（已用 scripts/fix_dev_data.py 修掉）。
+# 现在统一：种子数据只有一个来源 —— init_data.py。main.py 只负责建表。
 from database import engine, Base, SessionLocal
-from models import Student, Subject, Score  # 确保模型注册
+from models import Student, Subject, Score  # noqa: F401  确保模型注册到 Base
 
 Base.metadata.create_all(bind=engine)
 
-# 种子数据（表空时才插入）
-db_init = SessionLocal()
-try:
-    if db_init.query(Student).count() == 0:
-        import random
-        random.seed(42)
-        subjects_data = [
-            Subject(code="CHN", name="语文"), Subject(code="MATH", name="数学"),
-            Subject(code="ENG", name="英语"), Subject(code="PHY", name="物理"),
-            Subject(code="CHEM", name="化学"), Subject(code="BIO", name="生物"),
-        ]
-        db_init.add_all(subjects_data)
-        db_init.flush()
-        sub_map = {s.code: s for s in subjects_data}
-        students_data = [
-            Student(student_id="001", name="张三", gender="男", age=18),
-            Student(student_id="002", name="李四", gender="女", age=19),
-            Student(student_id="003", name="王五", gender="男", age=18),
-            Student(student_id="004", name="赵六", gender="女", age=20),
-            Student(student_id="005", name="钱七", gender="男", age=19),
-        ]
-        db_init.add_all(students_data)
-        scores_data = [
-            ("001","CHN",85),("001","MATH",55),("001","ENG",78),("001","PHY",92),("001","CHEM",67),
-            ("002","CHN",72),("002","MATH",88),("002","ENG",45),("002","PHY",76),("002","CHEM",90),
-            ("003","CHN",95),("003","MATH",62),("003","ENG",81),("003","PHY",58),("003","CHEM",73),
-            ("004","CHN",68),("004","MATH",91),("004","ENG",74),("004","PHY",85),("004","CHEM",53),
-            ("005","CHN",77),("005","MATH",49),("005","ENG",88),("005","PHY",69),("005","CHEM",94),
-        ]
-        for sid, code, score_val in scores_data:
-            db_init.add(Score(student_id=sid, subject_id=sub_map[code].id, score=score_val))
-        db_init.commit()
-        print("[INIT] 种子数据: 6科 5生 25条成绩")
-    else:
-        print("[INIT] 数据库已有数据，跳过种子初始化")
-except Exception as e:
-    db_init.rollback()
-    print(f"[INIT] 种子数据失败: {e}")
-finally:
-    db_init.close()
+
+def _seed_if_empty():
+    """
+    表为空时灌入种子数据。
+
+    直接 import init_data 会把它的模块级代码（建表 + 灌数据）执行一遍，
+    所以这里用 importlib 精确加载，并复用它的数据定义，避免出现第二份种子数据。
+    """
+    db = SessionLocal()
+    try:
+        if db.query(Student).count() > 0:
+            print("[INIT] 数据库已有数据，跳过种子初始化")
+            return
+    finally:
+        db.close()
+
+    import importlib.util
+    from pathlib import Path
+
+    spec = importlib.util.spec_from_file_location(
+        "seed_init_data", Path(__file__).resolve().parent / "init_data.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)   # init_data.py 自己会打日志并提交
+
+
+_seed_if_empty()
 
 # ===== FastAPI 应用初始化 =====
 app = FastAPI(title="学生成绩管理系统")
@@ -86,5 +80,10 @@ app.include_router(stats.router)
 
 
 # ===== 启动入口 =====
-import uvicorn
-uvicorn.run(app, host="0.0.0.0", port=8080)
+# 【2026-09-27 修复】这里原本是模块级直接调用 uvicorn.run(...)，没有 __main__ 保护。
+# 后果：任何 `from main import app` 都会启动一个真实的服务器并**永久阻塞**
+#   —— test_12api.py 跑不起来（卡死）、pytest 一收集到这个文件就 INTERNALERROR。
+# 正确写法是把副作用关进 __main__，import 时只暴露 app 对象。
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8080)

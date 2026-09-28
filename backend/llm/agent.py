@@ -12,6 +12,11 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 from models import Student, Subject
 
+try:  # 包内导入（正常情况）
+    from .security import validate_read_sql, validate_write_sql
+except ImportError:  # 直接以脚本方式运行 backend/llm/agent.py 时的兜底
+    from security import validate_read_sql, validate_write_sql
+
 # ===== Agent 系统提示词 =====
 SYSTEM_PROMPT = """你是学生成绩管理系统的自主智能体。你可以独立思考、调用工具、维护任务状态。
 
@@ -58,6 +63,8 @@ DONE: <给用户的最终回复，自然语言>
 ## 重要规则
 - **每轮只有一个 ACT 或一个 DONE**
 - 先 check_exists 再操作，不要假设数据存在
+- **写操作（INSERT/UPDATE/DELETE）禁止子查询**：安全层会拒绝。需要 subject_id 时直接用对照表 语文=1 数学=2 英语=3 物理=4 化学=5 生物=6
+- **SQL 里不能出现注释和分号**（注释和多语句会被安全层直接拦截）
 - 修改数据用 modify_db，系统会自动确认
 - 对查到的数据，根据分数等级分析：A(90-100) B(80-89) C(70-79) D(60-69) 不及格(<60)
 - 多步任务时记住前面步骤的结果
@@ -82,13 +89,13 @@ class ReActAgent:
     # ===== 工具实现 =====
 
     def _tool_query_db(self, args: dict) -> str:
-        """执行 SELECT 查询"""
+        """执行 SELECT 查询 —— 必须先过 security.validate_read_sql（白名单 + 自动补 LIMIT）"""
         sql = args.get("sql", "").strip()
-        if not sql.upper().startswith("SELECT"):
-            return "错误: query_db 只能执行 SELECT 语句"
+        ok, result = validate_read_sql(sql)
+        if not ok:
+            return f"SQL 被安全策略拒绝: {result}"
         try:
-            result = self.db.execute(text(sql))
-            rows = [dict(r._mapping) for r in result.fetchall()]
+            rows = [dict(r._mapping) for r in self.db.execute(text(result)).fetchall()]
             if not rows:
                 return "查询结果: 0 条记录"
             sample = rows[:20]
@@ -97,28 +104,16 @@ class ReActAgent:
             return f"查询失败: {str(e)[:200]}"
 
     def _tool_modify_db(self, args: dict) -> str:
-        """修改数据库 —— 返回待确认状态由前端处理"""
+        """修改数据库 —— 校验通过后只挂起，等用户确认才落库"""
         sql = args.get("sql", "").strip()
         reason = args.get("reason", "无")
-        sql_upper = sql.upper()
-        if not any(sql_upper.startswith(kw) for kw in ("INSERT", "UPDATE", "DELETE")):
-            return "错误: modify_db 只能执行 INSERT/UPDATE/DELETE"
-        # 安全检查
-        if re.search(r'\b(DROP|ALTER|TRUNCATE|CREATE)\b', sql, re.IGNORECASE):
-            return "错误: 禁止 DROP/ALTER/TRUNCATE/CREATE 操作"
-        if ";" in sql.rstrip(";").rstrip():
-            return "错误: 禁止多语句"
-        # 表名校验
-        valid = {"students", "subjects", "scores"}
-        found = set(re.findall(r'\b(FROM|JOIN|INTO|UPDATE)\s+(\w+)', sql, re.IGNORECASE))
-        found = {m[1] for m in found} if found else set()
-        invalid = found - valid
-        if invalid:
-            return f"错误: 无效表名 {invalid}，可用: {valid}"
+        ok, result = validate_write_sql(sql)
+        if not ok:
+            return f"SQL 被安全策略拒绝: {result}"
 
-        self.pending_write = {"sql": sql.strip().rstrip(";"), "reason": reason}
+        self.pending_write = {"sql": result, "reason": reason}
         self.state = "waiting_user"
-        return f"PENDING_CONFIRM: 即将 {sql[:80]}... 原因: {reason}。等待用户确认。"
+        return f"PENDING_CONFIRM: 即将 {result[:80]}... 原因: {reason}。等待用户确认。"
 
     def _tool_check_exists(self, args: dict) -> str:
         """检查学生/科目是否存在"""
@@ -353,10 +348,16 @@ class ReActAgent:
         return result
 
     def confirm_write(self, db: Session) -> str:
-        """用户确认写操作后执行"""
+        """用户确认写操作后执行 —— 执行前再校验一次（不信任 pending_write 的内容）"""
         if not self.pending_write:
             return "没有待确认的操作"
-        sql = self.pending_write["sql"]
+        raw_sql = self.pending_write["sql"]
+        ok, result = validate_write_sql(raw_sql)
+        if not ok:
+            self.pending_write = None
+            self.state = "thinking"
+            return f"已阻止执行: {result}"
+        sql = result
         try:
             result = db.execute(text(sql))
             db.flush()

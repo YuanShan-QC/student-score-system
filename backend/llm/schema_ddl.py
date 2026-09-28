@@ -75,6 +75,8 @@ CREATE TABLE scores (
 5. **查询科目成绩时必须 JOIN subjects 表，scores 表没有 name/code/subject 列，只有 subject_id**
 6. students列: id,student_id,name,gender,age  |  subjects列: id,code,name  |  scores列: id,student_id,subject_id,score
 7. **CRITICAL: scores.student_id 引用 students.student_id（VARCHAR学号如'001'），不是 students.id（INT自增）！写 INSERT 时子查询用 SELECT student_id FROM students，不是 SELECT id FROM students**
+8. **写操作（INSERT/UPDATE/DELETE）禁止使用子查询**。安全层会直接拒绝带子查询的写语句。需要 subject_id 时，直接用下面的科目 id 对照表：语文=1 数学=2 英语=3 物理=4 化学=5 生物=6
+9. 所有 SQL 不得包含注释（-- 、/* */ 、#）和分号结尾之外的任何分号
 
 ## 重要
 - 用户明确说"添加"/"新建"/"录入"/"插入" → 生成对应的 INSERT（不管数据是否已存在，都用 INSERT）
@@ -87,7 +89,7 @@ CREATE TABLE scores (
 SELECT s.student_id, s.name, sc.score FROM students s JOIN scores sc ON s.student_id=sc.student_id JOIN subjects su ON sc.subject_id=su.id WHERE su.name='数学' AND sc.score<60
 
 示例2 → 把张三的数学成绩改成80分
-UPDATE scores SET score=80 WHERE student_id='001' AND subject_id=(SELECT id FROM subjects WHERE name='数学')
+UPDATE scores SET score=80 WHERE student_id='001' AND subject_id=2
 
 示例3 → 添加一个新学生王小明，学号006
 INSERT INTO students (student_id, name, gender, age) VALUES ('006', '王小明', '男', 20)
@@ -99,7 +101,7 @@ DELETE FROM students WHERE student_id='006'
 INSERT INTO subjects (code, name) VALUES ('BIO', '生物')
 
 示例6 → 录入张三的生物成绩89分
-INSERT INTO scores (student_id, subject_id, score) VALUES ('001', (SELECT id FROM subjects WHERE name='生物'), 89)
+INSERT INTO scores (student_id, subject_id, score) VALUES ('001', 6, 89)
 
 ## 用户查询
 {{query}}
