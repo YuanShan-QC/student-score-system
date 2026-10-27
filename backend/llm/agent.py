@@ -103,6 +103,33 @@ class ReActAgent:
         except Exception as e:
             return f"查询失败: {str(e)[:200]}"
 
+    def _estimate_impact(self, sql: str):
+        """预估这条写 SQL 会影响多少行。
+
+        目的是让「全表操作」变得可见：WHERE 空转（score >= 0、id IS NOT NULL）
+        在语法上是合法过滤，但在语义上等于没有条件。安全层只能拦语法，
+        真正能兜住的是把影响范围算出来给用户看。
+        """
+        m = re.match(r"\s*(?:UPDATE\s+(\w+)|DELETE\s+FROM\s+(\w+))", sql, re.I)
+        if not m:
+            return None                      # INSERT 不统计，影响行数固定为 1
+        table = (m.group(1) or m.group(2)).strip()
+        if "?" in sql:                       # 带占位符的语句不在这里重放
+            return None
+        where = sql[sql.lower().rindex(" where ") + 7:] if " where " in sql.lower() else ""
+        try:
+            total = self.db.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar() or 0
+            if where:
+                affected = self.db.execute(
+                    text(f"SELECT COUNT(*) FROM {table} WHERE {where}")
+                ).scalar() or 0
+            else:
+                affected = total
+        except Exception:
+            return None
+        return {"table": table, "affected": int(affected), "total": int(total),
+                "full": int(affected) == int(total) and int(total) > 0}
+
     def _tool_modify_db(self, args: dict) -> str:
         """修改数据库 —— 校验通过后只挂起，等用户确认才落库"""
         sql = args.get("sql", "").strip()
@@ -111,7 +138,15 @@ class ReActAgent:
         if not ok:
             return f"SQL 被安全策略拒绝: {result}"
 
-        self.pending_write = {"sql": result, "reason": reason}
+        impact = self._estimate_impact(result)
+        if impact:
+            # 把影响范围拼进 reason，前端确认卡片不用改就能显示出来
+            scope = f"影响 {impact['affected']}/{impact['total']} 行"
+            if impact["full"]:
+                scope += "（全表）"
+            reason = f"{reason}｜{scope}"
+
+        self.pending_write = {"sql": result, "reason": reason, "impact": impact}
         self.state = "waiting_user"
         return f"PENDING_CONFIRM: 即将 {result[:80]}... 原因: {reason}。等待用户确认。"
 

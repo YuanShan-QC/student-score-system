@@ -62,7 +62,20 @@ class TestModifyDbWiring:
         assert result.startswith("PENDING_CONFIRM")
         assert agent.pending_write is not None
         assert agent.state == "waiting_user"
-        assert db.executed == []          # ← 没点确认之前，一行 SQL 都不许执行
+        # 没点确认之前一行写操作都不许执行；只允许 SELECT COUNT(*) 这类只读的影响行数预检
+        writes = [s for s in db.executed
+                  if s.strip().upper().startswith(("INSERT", "UPDATE", "DELETE"))]
+        assert writes == []
+
+    def test_写语句挂起时预估影响行数(self, agent, fake_db):
+        db = fake_db()
+        agent.db = db
+        agent._tool_modify_db({
+            "sql": "UPDATE scores SET score = 80 WHERE student_id = '001'",
+            "reason": "改成绩",
+        })
+        assert db.executed == ["SELECT COUNT(*) FROM scores"]
+        assert "影响" in agent.pending_write["reason"] or agent.pending_write["impact"] is None
 
     def test_无条件_DELETE_被拒且不挂起(self, agent, fake_db):
         agent.db = fake_db()
