@@ -17,3 +17,6 @@ dist/
 # IDE
 .vscode/
 .idea/
+
+# 评测运行产物（模型非确定性，每次跑都不一样，不入库）
+eval/inject_results.json

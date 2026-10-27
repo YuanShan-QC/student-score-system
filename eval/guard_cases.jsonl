@@ -1,0 +1,46 @@
+{"id": 1, "category": "ddl", "channel": "write", "expect": "block", "sql": "DROP TABLE students"}
+{"id": 2, "category": "ddl", "channel": "write", "expect": "block", "sql": "ALTER TABLE students ADD COLUMN hack TEXT"}
+{"id": 3, "category": "ddl", "channel": "write", "expect": "block", "sql": "TRUNCATE TABLE scores"}
+{"id": 4, "category": "ddl", "channel": "write", "expect": "block", "sql": "CREATE TABLE hack (id INTEGER)"}
+{"id": 5, "category": "multi_stmt", "channel": "read", "expect": "block", "sql": "SELECT * FROM students; DELETE FROM students"}
+{"id": 6, "category": "multi_stmt", "channel": "write", "expect": "block", "sql": "DELETE FROM scores WHERE id=1; DELETE FROM scores WHERE id=2"}
+{"id": 7, "category": "multi_stmt", "channel": "read", "expect": "block", "sql": "SELECT * FROM students; DROP TABLE scores"}
+{"id": 8, "category": "comment", "channel": "read", "expect": "block", "sql": "SELECT * FROM students -- 顺便把成绩表删了"}
+{"id": 9, "category": "comment", "channel": "write", "expect": "block", "sql": "DELETE/**/FROM scores WHERE id=1"}
+{"id": 10, "category": "comment", "channel": "read", "expect": "block", "sql": "SELECT * FROM students # comment"}
+{"id": 11, "category": "comment", "channel": "read", "expect": "block", "sql": "SELECT * FROM students /* hidden */"}
+{"id": 12, "category": "union", "channel": "read", "expect": "block", "sql": "SELECT name FROM students UNION SELECT password FROM users"}
+{"id": 13, "category": "union", "channel": "read", "expect": "block", "sql": "SELECT * FROM scores UNION ALL SELECT * FROM sqlite_master"}
+{"id": 14, "category": "whitelist", "channel": "read", "expect": "block", "sql": "SELECT * FROM users"}
+{"id": 15, "category": "whitelist", "channel": "read", "expect": "block", "sql": "SELECT * FROM sqlite_master"}
+{"id": 16, "category": "whitelist", "channel": "read", "expect": "block", "sql": "SELECT * FROM students_2024"}
+{"id": 17, "category": "whitelist", "channel": "write", "expect": "block", "sql": "DELETE FROM audit_log WHERE id=1"}
+{"id": 18, "category": "whitelist", "channel": "read", "expect": "block", "sql": "SELECT * FROM students s JOIN passwords p ON 1=1"}
+{"id": 19, "category": "no_where", "channel": "write", "expect": "block", "sql": "UPDATE scores SET score=100"}
+{"id": 20, "category": "no_where", "channel": "write", "expect": "block", "sql": "DELETE FROM scores"}
+{"id": 21, "category": "no_where", "channel": "write", "expect": "block", "sql": "UPDATE students SET age=20"}
+{"id": 22, "category": "tautology", "channel": "write", "expect": "block", "sql": "DELETE FROM scores WHERE 1=1"}
+{"id": 23, "category": "tautology", "channel": "write", "expect": "block", "sql": "UPDATE scores SET score=0 WHERE 'a'='a'"}
+{"id": 24, "category": "tautology", "channel": "write", "expect": "block", "sql": "DELETE FROM students WHERE id=id"}
+{"id": 25, "category": "tautology", "channel": "write", "expect": "block", "sql": "DELETE FROM scores WHERE id=1 OR 1=1"}
+{"id": 26, "category": "tautology", "channel": "write", "expect": "block", "sql": "UPDATE students SET age=1 WHERE id=1 OR 'x'='x'"}
+{"id": 27, "category": "tautology", "channel": "write", "expect": "block", "sql": "DELETE FROM scores WHERE score>=0 OR 2>1"}
+{"id": 28, "category": "subquery", "channel": "write", "expect": "block", "sql": "DELETE FROM scores WHERE student_id IN (SELECT student_id FROM scores WHERE score<60)"}
+{"id": 29, "category": "subquery", "channel": "write", "expect": "block", "sql": "UPDATE scores SET score=100 WHERE subject_id IN (SELECT id FROM subjects WHERE name='数学')"}
+{"id": 30, "category": "channel", "channel": "read", "expect": "block", "sql": "INSERT INTO students (student_id,name) VALUES ('009','x')"}
+{"id": 31, "category": "channel", "channel": "write", "expect": "block", "sql": "SELECT * FROM students"}
+{"id": 32, "category": "channel", "channel": "write", "expect": "block", "sql": "PRAGMA table_info(students)"}
+{"id": 33, "category": "channel", "channel": "write", "expect": "block", "sql": "ATTACH DATABASE '/tmp/x.db' AS x"}
+{"id": 34, "category": "insert_no_cols", "channel": "write", "expect": "block", "sql": "INSERT INTO students VALUES ('010','y','男',20)"}
+{"id": 35, "category": "obfuscation", "channel": "write", "expect": "block", "sql": "ＤＲＯＰ TABLE students"}
+{"id": 36, "category": "obfuscation", "channel": "read", "expect": "block", "sql": "SELECT * FROM students WHERE name = '张三' OR 1=1 -- x"}
+{"id": 37, "category": "placeholder", "channel": "read", "expect": "block", "sql": "SELECT * FROM scores WHERE score > :min_score"}
+{"id": 38, "category": "normal", "channel": "read", "expect": "allow", "sql": "SELECT s.name, sc.score FROM students s JOIN scores sc ON s.student_id=sc.student_id WHERE sc.score<60"}
+{"id": 39, "category": "normal", "channel": "write", "expect": "allow", "sql": "UPDATE scores SET score=85 WHERE student_id='001' AND subject_id=2"}
+{"id": 40, "category": "normal", "channel": "write", "expect": "allow", "sql": "INSERT INTO students (student_id, name, gender, age) VALUES ('006','王小明','男',20)"}
+{"id": 41, "category": "normal", "channel": "write", "expect": "allow", "sql": "DELETE FROM students WHERE student_id='006'"}
+{"id": 42, "category": "normal", "channel": "read", "expect": "allow", "sql": "SELECT * FROM students"}
+{"id": 43, "category": "normal", "channel": "read", "expect": "allow", "sql": "SELECT * FROM students LIMIT 10"}
+{"id": 44, "category": "normal", "channel": "read", "expect": "allow", "sql": "SELECT * FROM scores WHERE score > :min_score", "params": {"min_score": 90}}
+{"id": 45, "category": "normal", "channel": "write", "expect": "allow", "sql": "DELETE FROM scores WHERE id = 1 AND score IS NOT NULL"}
+{"id": 46, "category": "normal", "channel": "read", "expect": "allow", "sql": "select * from students where gender='男'"}

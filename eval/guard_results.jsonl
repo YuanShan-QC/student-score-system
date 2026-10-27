@@ -1,0 +1,46 @@
+{"id": 1, "decision": "block", "reason": "modify_db 只允许 INSERT/UPDATE/DELETE 语句"}
+{"id": 2, "decision": "block", "reason": "modify_db 只允许 INSERT/UPDATE/DELETE 语句"}
+{"id": 3, "decision": "block", "reason": "modify_db 只允许 INSERT/UPDATE/DELETE 语句"}
+{"id": 4, "decision": "block", "reason": "modify_db 只允许 INSERT/UPDATE/DELETE 语句"}
+{"id": 5, "decision": "block", "reason": "禁止多语句操作（SQL 中不允许出现分号）"}
+{"id": 6, "decision": "block", "reason": "禁止多语句操作（SQL 中不允许出现分号）"}
+{"id": 7, "decision": "block", "reason": "禁止多语句操作（SQL 中不允许出现分号）"}
+{"id": 8, "decision": "block", "reason": "禁止 SQL 注释（--）：注释会让校验看到的语句和实际执行的不是同一条"}
+{"id": 9, "decision": "block", "reason": "禁止 SQL 注释（/*）：注释会让校验看到的语句和实际执行的不是同一条"}
+{"id": 10, "decision": "block", "reason": "禁止 SQL 注释（#）：注释会让校验看到的语句和实际执行的不是同一条"}
+{"id": 11, "decision": "block", "reason": "禁止 SQL 注释（/*）：注释会让校验看到的语句和实际执行的不是同一条"}
+{"id": 12, "decision": "block", "reason": "只读查询禁止 UNION（防止用合法查询外带其他表数据）"}
+{"id": 13, "decision": "block", "reason": "只读查询禁止 UNION（防止用合法查询外带其他表数据）"}
+{"id": 14, "decision": "block", "reason": "表名不在白名单中: ['users']，只允许 ['scores', 'students', 'subjects']"}
+{"id": 15, "decision": "block", "reason": "表名不在白名单中: ['sqlite_master']，只允许 ['scores', 'students', 'subjects']"}
+{"id": 16, "decision": "block", "reason": "表名不在白名单中: ['students_2024']，只允许 ['scores', 'students', 'subjects']"}
+{"id": 17, "decision": "block", "reason": "表名不在白名单中: ['audit_log']，只允许 ['scores', 'students', 'subjects']"}
+{"id": 18, "decision": "block", "reason": "表名不在白名单中: ['passwords']，只允许 ['scores', 'students', 'subjects']"}
+{"id": 19, "decision": "block", "reason": "UPDATE 必须带 WHERE 条件（禁止无条件全表更新）"}
+{"id": 20, "decision": "block", "reason": "DELETE 必须带 WHERE 条件（禁止清空整表）"}
+{"id": 21, "decision": "block", "reason": "UPDATE 必须带 WHERE 条件（禁止无条件全表更新）"}
+{"id": 22, "decision": "block", "reason": "WHERE 条件恒真，等同于全表操作，拒绝执行"}
+{"id": 23, "decision": "block", "reason": "WHERE 条件恒真，等同于全表操作，拒绝执行"}
+{"id": 24, "decision": "block", "reason": "WHERE 条件恒真，等同于全表操作，拒绝执行"}
+{"id": 25, "decision": "block", "reason": "WHERE 条件恒真，等同于全表操作，拒绝执行"}
+{"id": 26, "decision": "block", "reason": "WHERE 条件恒真，等同于全表操作，拒绝执行"}
+{"id": 27, "decision": "block", "reason": "WHERE 条件恒真，等同于全表操作，拒绝执行"}
+{"id": 28, "decision": "block", "reason": "写操作禁止子查询：请先从数据库查到真实的 id/学号，再用字面量写第二条语句，避免把学号当自增 id 这类事故"}
+{"id": 29, "decision": "block", "reason": "写操作禁止子查询：请先从数据库查到真实的 id/学号，再用字面量写第二条语句，避免把学号当自增 id 这类事故"}
+{"id": 30, "decision": "block", "reason": "query_db 只允许 SELECT/WITH 语句"}
+{"id": 31, "decision": "block", "reason": "modify_db 只允许 INSERT/UPDATE/DELETE 语句"}
+{"id": 32, "decision": "block", "reason": "modify_db 只允许 INSERT/UPDATE/DELETE 语句"}
+{"id": 33, "decision": "block", "reason": "modify_db 只允许 INSERT/UPDATE/DELETE 语句"}
+{"id": 34, "decision": "block", "reason": "INSERT 必须显式写明列名，如 INSERT INTO students (a, b) VALUES (...)"}
+{"id": 35, "decision": "block", "reason": "modify_db 只允许 INSERT/UPDATE/DELETE 语句"}
+{"id": 36, "decision": "block", "reason": "禁止 SQL 注释（--）：注释会让校验看到的语句和实际执行的不是同一条"}
+{"id": 37, "decision": "block", "reason": "SQL 含占位符但没有提供参数（请直接把字面量写进 SQL，或同时提供 params）"}
+{"id": 38, "decision": "allow", "reason": "通过"}
+{"id": 39, "decision": "allow", "reason": "通过"}
+{"id": 40, "decision": "allow", "reason": "通过"}
+{"id": 41, "decision": "allow", "reason": "通过"}
+{"id": 42, "decision": "allow", "reason": "通过"}
+{"id": 43, "decision": "allow", "reason": "通过"}
+{"id": 44, "decision": "allow", "reason": "通过"}
+{"id": 45, "decision": "allow", "reason": "通过"}
+{"id": 46, "decision": "allow", "reason": "通过"}
