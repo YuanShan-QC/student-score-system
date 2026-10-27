@@ -46,12 +46,13 @@ _TABLE_RE = re.compile(r"\b(?:FROM|JOIN|UPDATE|INTO)\s+([A-Za-z_][A-Za-z0-9_]*)"
 _PLACEHOLDER_RE = re.compile(r"(?<![:/\w]):([A-Za-z_][A-Za-z0-9_]*)|\?")
 
 #: 恒真 WHERE —— UPDATE/DELETE 写成这样等于全表操作，必须拦住。
-#: 注意 [A-Za-z_] 而非 [\w]：写成 \w 会把 `subject_id = 6` 这种
+#: 三种基本写法：WHERE 1=1 / WHERE 'a'='a' / WHERE id=id，
+#: 以及挂在 OR 后面的变体（WHERE id=1 OR 1=1 一样会删全表）。
+#: 注意 [A-Za-z_] 而非 \w：写成 \w 会把 `subject_id = 6` 这种
 #: "列 = 数字字面量"的**正常条件**也判成恒真（测试跑出来的真实 bug）。
-_TAUTOLOGY_RE = re.compile(
-    r"WHERE\s+(?:1\s*=\s*1|'[^']*'\s*=\s*'[^']*'|([A-Za-z_]\w*)\s*=\s*\1)\s*$",
-    re.IGNORECASE,
-)
+_SELF_CMP_RE = re.compile(r"\b([A-Za-z_]\w*)\s*=\s*\1\b")
+_LITERAL_CMP_RE = re.compile(r"(?<![\w.])(\d+)\s*(>=|<=|<>|!=|==|=|>|<)\s*(\d+)(?![\w.])")
+_STR_CMP_RE = re.compile(r"'([^']*)'\s*(<>|!=|==|=)\s*'([^']*)'")
 
 #: LIMIT 子句检测（只看语句末尾，避免误判子查询里的 LIMIT）
 _LIMIT_TAIL_RE = re.compile(r"\bLIMIT\s+\d+\s*$", re.IGNORECASE)
@@ -70,6 +71,59 @@ def _strip_trailing_semicolon(sql: str) -> str:
     while s.endswith(";"):
         s = s[:-1].strip()
     return s
+
+
+def _where_clause(sql: str) -> str:
+    """取最后一个 WHERE 之后的部分（写通道已禁子查询，所以最后一个 WHERE 属于本语句）"""
+    matches = list(re.finditer(r"\bWHERE\b", sql, re.IGNORECASE))
+    return sql[matches[-1].end():] if matches else ""
+
+
+def _is_constant_true(expr: str) -> bool:
+    """这段表达式是否与数据无关地恒为真：1=1 / 'a'='a' / id=id / 2>1"""
+    # 字符串字面量比较
+    for m in _STR_CMP_RE.finditer(expr):
+        a, op, b = m.group(1), m.group(2), m.group(3)
+        if op in ("=", "==") and a == b:
+            return True
+        if op in ("!=", "<>") and a != b:
+            return True
+
+    # 先抹掉字符串内容，避免 'a OR b' 里的 OR 被当成逻辑分隔符
+    stripped = re.sub(r"'[^']*'", "''", expr)
+
+    # 数字字面量比较
+    for m in _LITERAL_CMP_RE.finditer(stripped):
+        a, op, b = int(m.group(1)), m.group(2), int(m.group(3))
+        if op in ("=", "==") and a == b:
+            return True
+        if op in ("!=", "<>") and a != b:
+            return True
+        if (op == ">" and a > b) or (op == "<" and a < b):
+            return True
+        if (op == ">=" and a >= b) or (op == "<=" and a <= b):
+            return True
+
+    # 自比较：student_id = student_id
+    return bool(_SELF_CMP_RE.search(stripped))
+
+
+def _check_tautology(sql: str) -> str | None:
+    """第 3 层：恒真 WHERE 检查。
+
+    逐个 OR 分支检查，而不是只看"WHERE 紧跟恒真、且到语句结尾"：
+    `WHERE id=1 OR 1=1` 的恒真项在中间，用旧的正则会被整条放过
+    （这是对抗样本评测跑出来的真实漏拦，见 eval_kit/guard_cases.jsonl）。
+    """
+    where = _where_clause(sql)
+    if not where:
+        return None
+    if _is_constant_true(where):
+        return "WHERE 条件恒真，等同于全表操作，拒绝执行"
+    for part in re.split(r"\bOR\b", where, flags=re.IGNORECASE):
+        if _is_constant_true(part):
+            return "WHERE 条件恒真（OR 分支是常量真值），等同于全表操作，拒绝执行"
+    return None
 
 
 def _check_common(sql: str) -> str | None:
@@ -217,8 +271,10 @@ def validate_write_sql(sql: str) -> tuple[bool, str]:
             return False, "INSERT 必须显式写明列名，如 INSERT INTO students (a, b) VALUES (...)"
 
     # 恒真条件：只有 UPDATE/DELETE 需要检查
-    if upper.startswith(("UPDATE", "DELETE")) and _TAUTOLOGY_RE.search(sql_clean):
-        return False, "WHERE 条件恒真，等同于全表操作，拒绝执行"
+    if upper.startswith(("UPDATE", "DELETE")):
+        reason = _check_tautology(sql_clean)
+        if reason:
+            return False, reason
 
     return True, sql_clean
 
