@@ -4,6 +4,27 @@ FastAPI 应用入口 —— 学生成绩管理系统 API
 启动：cd backend && python main.py
 文档：http://localhost:8080/docs
 """
+# ===== Windows 事件循环兜底（必须在事件循环创建前设置，import 期执行刚好）=====
+# Windows 默认的 ProactorEventLoop 在 accept() 上会抛
+#   OSError: [WinError 10014] 系统检测到在一个调用中尝试使用指针参数时的无效指针地址
+# 监听套接字随即失效：进程还活着，但所有新连接都会失败
+# （前端页面能打开——那是 Vite 的 5173——但接口全挂，页面提示"拉取数据失败"）。
+# uvicorn 只在 use_subprocess（--reload / --workers）时才切 SelectorEventLoop，
+# 单进程启动会保留 Proactor，所以这里显式切换。
+#
+# 注意：这段只在**入口先执行、循环后创建**的顺序下有效 ——
+#   ✅ `python main.py`   ✅ `python run.py`（新建，推荐）
+#   ❌ `python -m uvicorn main:app`：uvicorn 先建循环再 import 本模块，
+#      此处的设置来不及生效，实测仍会 10014（已验证）。所以要跑 uvicorn
+#      请用 `backend/run.py`，别用 -m uvicorn。
+# 设 SCORE_DISABLE_SELECTOR_LOOP=1 可临时关闭该兜底（仅用于诊断对比）。
+import asyncio
+import os
+import sys
+
+if sys.platform == "win32" and not os.getenv("SCORE_DISABLE_SELECTOR_LOOP"):
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -55,9 +76,15 @@ app = FastAPI(title="学生成绩管理系统")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        # localhost 与 127.0.0.1 是两个不同的 origin，Vite 提示里两种都给，
+        # 只放 localhost 的话，用 127.0.0.1:5173 打开页面会 CORS 失败、
+        # 表现为"页面能进但数据拉不到"，和 10014 的症状一模一样，容易误判。
         "http://localhost:5173",
         "http://localhost:5174",
         "http://localhost:5175",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "http://127.0.0.1:5175",
     ],
     allow_methods=["*"],
     allow_headers=["*"],
